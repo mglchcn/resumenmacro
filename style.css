@@ -45,4 +45,12 @@ footer { margin-top: auto; border-top: 1px solid #cbd5e1; padding-top: 10px; tex
     .no-print { display: none !important; }
     /* Forza a los navegadores a imprimir los colores de fondo */
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+
+}
+
+.grid-graficos { 
+    display: grid; 
+    grid-template-columns: 1fr 1fr; /* Crea dos columnas iguales */
+    gap: 20px; 
+    flex-grow: 1; 
 }
