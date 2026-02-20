@@ -1,8 +1,5 @@
-// Tu enlace original de Google Sheets
-const enlaceGoogle = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC7Gs2MnP2gCKMnrAtyQ2GBxrC0sM6xx2IlBGJ91ubhMPn1O0FRGNoD7zp-fZFnv6vsrB_u3W2eGAp/pub?gid=1709405390&single=true&output=csv';
 
-// Pasamos el enlace a través del proxy CORS gratuito (allorigins)
-const urlCSV = `https://api.allorigins.win/raw?url=${encodeURIComponent(enlaceGoogle)}`;
+const enlaceGoogle = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC7Gs2MnP2gCKMnrAtyQ2GBxrC0sM6xx2IlBGJ91ubhMPn1O0FRGNoD7zp-fZFnv6vsrB_u3W2eGAp/pub?gid=1709405390&single=true&output=csv';
 
 function formatearFecha() {
     const opciones = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -120,4 +117,5 @@ function cargarDatosDesdeSheets() {
 document.addEventListener("DOMContentLoaded", function() {
     formatearFecha();
     cargarDatosDesdeSheets();
+
 });
