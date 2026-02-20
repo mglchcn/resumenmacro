@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte Macroeconómico de Bolivia</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+    <div class="controles-impresion no-print">
+        <button onclick="window.print()">Imprimir Reporte / Guardar como PDF</button>
+    </div>
+
+    <div class="hoja-a4">
+        <header>
+            <div class="logo-placeholder">MINISTERIO DE LA PRESIDENCIA</div>
+            <div class="titulos">
+                <h1>Reporte Macroeconómico</h1>
+                <h2>Bolivia</h2>
+                <p id="fecha-actualizacion">Actualizado a: Cargando...</p>
+            </div>
+        </header>
+
+        <section class="resumen-kpi">
+            <div class="kpi">
+                <span>Crecimiento PIB(p)</span>
+                <strong id="kpi-pib">--%</strong>
+            </div>
+            <div class="kpi">
+                <span>Inflación Acumulada</span>
+                <strong id="kpi-ipc">--%</strong>
+            </div>
+            <div class="kpi">
+                <span>RIN (Millones USD)</span>
+                <strong id="kpi-rin">--</strong>
+            </div>
+        </section>
+
+        <main class="grid-graficos">
+            <div class="grafico-contenedor">
+                <h3>Evolución del PIB (%)</h3>
+                <div id="grafico-pib"></div>
+            </div>
+            <div class="grafico-contenedor">
+                <h3>Reservas Internacionales Netas (RIN)</h3>
+                <div id="grafico-rin"></div>
+            </div>
+            <div class="grafico-contenedor">
+                <h3>Inflación Mensual (IPC)</h3>
+                <div id="grafico-ipc"></div>
+            </div>
+            <div class="grafico-contenedor">
+                <h3>Balanza Comercial (Millones USD)</h3>
+                <div id="grafico-balanza"></div>
+            </div>
+        </main>
+        
+        <footer>
+            <p>Fuente de datos: BCB / INE (Sincronizado via WEB OFICIAL). Documento generado automáticamente.</p>
+        </footer>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
