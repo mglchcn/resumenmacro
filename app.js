@@ -9,7 +9,7 @@ function formatearFecha() {
 
 const opcionesGraficoBase = {
     chart: { height: 250, toolbar: { show: false }, animations: { enabled: false } },
-    dataLabels: { enabled: false },
+    dataLabels: { enabled: true },
     tooltip: { enabled: false }, 
     stroke: { width: 2 }
 };
@@ -107,8 +107,73 @@ async function cargarDatosDesdeSheets() {
         alert("Hubo un problema de conexión al intentar descargar el CSV.");
     }
 }
+//-----------------------------------------------------------------------------
+// Opciones base para el gráfico (por si no las tienes a mano)
+const opcionesGraficoLargo = {
+    chart: { height: 350, toolbar: { show: true }, zoom: { enabled: true } },
+    dataLabels: { enabled: false },
+    stroke: { width: 2, curve: 'smooth' }
+};
 
+async function cargarDatosIPC_DesdeINE() {
+    const urlINE = 'https://www.ine.gob.bo/wp-integrate/grupo/ipc.php';
+    const proxyCORS = `https://corsproxy.io/?${encodeURIComponent(urlINE)}`;
+
+    try {
+        console.log("Conectando con el INE...");
+        const respuesta = await fetch(proxyCORS);
+        const html = await respuesta.text();
+
+        // 1. EXTRAER EL JSON OCULTO:
+        // Buscamos el texto que empiece con [{"mensual" y termine con }]
+        const regex = /\[\{"mensual".+?\}\]/s;
+        const coincidencia = html.match(regex);
+
+        if (coincidencia) {
+            // Convertimos ese texto crudo en un objeto JavaScript real
+            const datosINE = JSON.parse(coincidencia[0]);
+            console.log("¡Datos interceptados del INE con éxito!", datosINE);
+
+            // 2. MAPEAR LOS DATOS PARA APEXCHARTS:
+            const meses = datosINE.map(fila => fila.mensual);
+            // El INE los manda como texto ("2.93"), los pasamos a decimales (parseFloat)
+            const ipc12Meses = datosINE.map(fila => parseFloat(fila.datoa));
+            const ipcMensual = datosINE.map(fila => parseFloat(fila.datoc));
+
+            // 3. ACTUALIZAR EL DASHBOARD:
+            // Actualizar KPI superior (Último mes disponible)
+            const ultimoIndice = ipc12Meses.length - 1;
+            document.getElementById('kpi-ipc').textContent = ipc12Meses[ultimoIndice] + '%';
+
+            // Dibujar el Gráfico
+            new ApexCharts(document.querySelector("#grafico-ipc"), {
+                ...opcionesGraficoLargo,
+                series: [
+                    { name: 'Inflación 12 Meses', data: ipc12Meses },
+                    { name: 'Inflación Mensual', data: ipcMensual }
+                ],
+                chart: { ...opcionesGraficoLargo.chart, type: 'line' },
+                colors: ['#ef4444', '#f59e0b'],
+                xaxis: { categories: meses, tickAmount: 12 } // 1 tick por año
+            }).render();
+
+        } else {
+            console.error("No se pudo encontrar el bloque de datos en la página del INE. Es posible que hayan cambiado la estructura.");
+        }
+
+    } catch (error) {
+        console.error("Error al hacer scraping en la página del INE:", error);
+    }
+}
+
+// Ejecutar al cargar
+document.addEventListener("DOMContentLoaded", function() {
+    cargarDatosIPC_DesdeINE();
+});
+
+//------------------------------------------------------------------------------------------
 document.addEventListener("DOMContentLoaded", function() {
     formatearFecha();
     cargarDatosDesdeSheets();
 });
+
