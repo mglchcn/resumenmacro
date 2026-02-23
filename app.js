@@ -2,16 +2,18 @@
 // 1. CONFIGURACIÓN Y URLS
 // ==========================================
 
-// --- Google Sheets (Ahora solo para PIB y RIN) ---
+// --- Google Sheets (AHORA SOLO PARA RIN) ---
 const enlaceGoogle = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQC7Gs2MnP2gCKMnrAtyQ2GBxrC0sM6xx2IlBGJ91ubhMPn1O0FRGNoD7zp-fZFnv6vsrB_u3W2eGAp/pub?gid=1709405390&single=true&output=csv';
 const urlCSV = `https://corsproxy.io/?${encodeURIComponent(enlaceGoogle)}`;
 
-// --- INE (Proxies para Scraping) ---
+// --- INE (Proxies para Scraping de las 3 variables) ---
 const urlINE_IPC = 'https://www.ine.gob.bo/wp-integrate/grupo/ipc.php';
 const urlINE_Comex = 'https://www.ine.gob.bo/wp-integrate/grupo/comex.php';
+const urlINE_PIB = 'https://www.ine.gob.bo/wp-integrate/grupo/pibtrimestral.php';
 
 const proxyINE_IPC = `https://corsproxy.io/?${encodeURIComponent(urlINE_IPC)}`;
 const proxyINE_Comex = `https://corsproxy.io/?${encodeURIComponent(urlINE_Comex)}`;
+const proxyINE_PIB = `https://corsproxy.io/?${encodeURIComponent(urlINE_PIB)}`;
 
 
 // ==========================================
@@ -26,7 +28,7 @@ const opcionesGraficoBase = {
 };
 
 const opcionesGraficoLargo = {
-    chart: { height: 300, toolbar: { show: true }, zoom: { enabled: true } },
+    chart: { height: 320, toolbar: { show: true }, zoom: { enabled: true } },
     dataLabels: { enabled: false }, 
     stroke: { width: 2, curve: 'smooth' }
 };
@@ -55,7 +57,7 @@ function limpiarNumero(valor) {
 
 
 // ==========================================
-// 4. CARGA DE DATOS DESDE GOOGLE SHEETS (PIB y RIN)
+// 4. CARGA DE DATOS DESDE GOOGLE SHEETS (Solo RIN)
 // ==========================================
 
 async function cargarDatosDesdeSheets() {
@@ -73,31 +75,15 @@ async function cargarDatosDesdeSheets() {
 
                 const encabezados = Object.keys(resultados.data[0]);
                 const colAnio = encabezados.find(e => e.toLowerCase().includes('a')) || encabezados[0]; 
-                const colPIB = encabezados.find(e => e.toUpperCase() === 'PIB');
                 const colRIN = encabezados.find(e => e.toUpperCase() === 'RIN');
 
                 const datosLimpios = resultados.data.filter(fila => fila[colAnio] != null && String(fila[colAnio]).trim() !== "");
 
                 const categorias = datosLimpios.map(fila => fila[colAnio]);
-                const pib = colPIB ? datosLimpios.map(fila => limpiarNumero(fila[colPIB])) : [];
                 const rin = colRIN ? datosLimpios.map(fila => limpiarNumero(fila[colRIN])) : [];
 
-                const ultimoIndice = datosLimpios.length - 1;
-                
-                if(document.getElementById('kpi-pib') && pib.length > 0) 
-                    document.getElementById('kpi-pib').textContent = pib[ultimoIndice] + '%';
-                
-                if(document.getElementById('kpi-rin') && rin.length > 0) 
-                    document.getElementById('kpi-rin').textContent = rin[ultimoIndice];
-
-                if (document.querySelector("#grafico-pib") && pib.length > 0) {
-                    new ApexCharts(document.querySelector("#grafico-pib"), {
-                        ...opcionesGraficoBase,
-                        series: [{ name: 'PIB', data: pib }],
-                        chart: { ...opcionesGraficoBase.chart, type: 'bar' },
-                        colors: ['#2563eb'],
-                        xaxis: { categories: categorias }
-                    }).render();
+                if(document.getElementById('kpi-rin') && rin.length > 0) {
+                    document.getElementById('kpi-rin').textContent = rin[rin.length - 1];
                 }
 
                 if (document.querySelector("#grafico-rin") && rin.length > 0) {
@@ -111,34 +97,80 @@ async function cargarDatosDesdeSheets() {
                 }
             }
         });
-    } catch (error) {
-        console.error("Error al cargar Google Sheets:", error);
-    }
+    } catch (error) { console.error("Error al cargar Google Sheets:", error); }
 }
 
 
 // ==========================================
-// 5. CARGA DE DATOS DESDE EL INE (IPC)
+// 5. CARGA DE DATOS DESDE EL INE (PIB Trimestral)
+// ==========================================
+
+async function cargarDatosPIB_DesdeINE() {
+    try {
+        console.log("Conectando con el INE (PIB)...");
+        const respuesta = await fetch(proxyINE_PIB);
+        if (!respuesta.ok) throw new Error(`HTTP: ${respuesta.status}`);
+
+        const html = await respuesta.text();
+        
+        // En el PIB la variable de tiempo se llama "descripcion"
+        const coincidencia = html.match(/\[\{"descripcion".+?\}\]/s);
+
+        if (coincidencia) {
+            const datosINE = JSON.parse(coincidencia[0]);
+            
+            // Extraer y limpiar datos ("I-2023(p)" -> "I-2023")
+            const trimestres = datosINE.map(fila => fila.descripcion.replace(/\(p\)/g, '').trim());
+            const pibTrimestral = datosINE.map(fila => parseFloat(fila.datoa));
+            const pibAcumulado = datosINE.map(fila => parseFloat(fila.datob));
+
+            const ultimoIndice = pibAcumulado.length - 1;
+            const ultimoDatoAcumulado = pibAcumulado[ultimoIndice];
+
+            // Actualizar la Tarjeta Superior
+            if(document.getElementById('kpi-pib')) {
+                const kpiPib = document.getElementById('kpi-pib');
+                kpiPib.textContent = ultimoDatoAcumulado + '%';
+                kpiPib.style.color = ultimoDatoAcumulado < 0 ? '#ef4444' : '#2563eb';
+            }
+
+            // Renderizar Gráfico Mixto
+            if(document.querySelector("#grafico-pib")) {
+                new ApexCharts(document.querySelector("#grafico-pib"), {
+                    ...opcionesGraficoLargo,
+                    series: [
+                        { name: 'Crecimiento Trimestral (%)', type: 'column', data: pibTrimestral },
+                        { name: 'Crecimiento Acumulado (%)', type: 'line', data: pibAcumulado }
+                    ],
+                    chart: { ...opcionesGraficoLargo.chart, type: 'line' }, 
+                    stroke: { width: [0, 3], curve: 'smooth' }, // 0 para quitar borde a las columnas, 3 para la línea
+                    colors: ['#3b82f6', '#f59e0b'],
+                    xaxis: { categories: trimestres, tickAmount: 10 }
+                }).render();
+            }
+        }
+    } catch (error) { console.error("Error PIB INE:", error); }
+}
+
+
+// ==========================================
+// 6. CARGA DE DATOS DESDE EL INE (IPC)
 // ==========================================
 
 async function cargarDatosIPC_DesdeINE() {
     try {
         const respuesta = await fetch(proxyINE_IPC);
-        if (!respuesta.ok) throw new Error(`HTTP: ${respuesta.status}`);
-
         const html = await respuesta.text();
         const coincidencia = html.match(/\[\{"mensual".+?\}\]/s);
 
         if (coincidencia) {
             const datosINE = JSON.parse(coincidencia[0]);
-            
             const meses = datosINE.map(fila => fila.mensual);
             const ipc12Meses = datosINE.map(fila => parseFloat(fila.datoa));
             const ipcMensual = datosINE.map(fila => parseFloat(fila.datoc));
 
-            if(document.getElementById('kpi-ipc')) {
+            if(document.getElementById('kpi-ipc')) 
                 document.getElementById('kpi-ipc').textContent = ipc12Meses[ipc12Meses.length - 1] + '%';
-            }
 
             if(document.querySelector("#grafico-ipc")) {
                 new ApexCharts(document.querySelector("#grafico-ipc"), {
@@ -158,61 +190,61 @@ async function cargarDatosIPC_DesdeINE() {
 
 
 // ==========================================
-// 6. CARGA DE DATOS DESDE EL INE (Balanza Comercial)
+// 7. CARGA DE DATOS DESDE EL INE (Balanza Comercial)
 // ==========================================
 
 async function cargarDatosBalanza_DesdeINE() {
     try {
-        console.log("Conectando con el INE (Comex)...");
         const respuesta = await fetch(proxyINE_Comex);
-        if (!respuesta.ok) throw new Error(`HTTP: ${respuesta.status}`);
-
         const html = await respuesta.text();
         const coincidencia = html.match(/\[\{"mensual".+?\}\]/s);
 
         if (coincidencia) {
             const datosINE = JSON.parse(coincidencia[0]);
-            console.log("Datos Comex interceptados:", datosINE);
             
-            // Limpiamos la "(p)" de los meses (ej: "ene-23(p)" -> "ene-23")
             const meses = datosINE.map(fila => fila.mensual.replace(/\(p\)/g, '').trim());
-            
-            // Extraemos los datos (y convertimos los textos en decimales)
             const saldo = datosINE.map(fila => parseFloat(fila.saldo));
             const exportaciones = datosINE.map(fila => parseFloat(fila.exportacion));
             const importaciones = datosINE.map(fila => parseFloat(fila.importacion));
 
-            // Si llegaras a agregar un <strong id="kpi-balanza"> en tu HTML superior
-            if(document.getElementById('kpi-balanza')) {
-                document.getElementById('kpi-balanza').textContent = saldo[saldo.length - 1];
+            const ultimoIndice = saldo.length - 1;
+            const ultimoSaldo = saldo[ultimoIndice];
+
+            if(document.getElementById('kpi-exportaciones')) document.getElementById('kpi-exportaciones').textContent = exportaciones[ultimoIndice] + ' M';
+            if(document.getElementById('kpi-importaciones')) document.getElementById('kpi-importaciones').textContent = importaciones[ultimoIndice] + ' M';
+            
+            if(document.getElementById('kpi-saldo')) {
+                const textoSaldo = document.getElementById('kpi-saldo');
+                const tarjetaSaldo = document.getElementById('tarjeta-saldo');
+                textoSaldo.textContent = ultimoSaldo + ' M';
+                textoSaldo.style.color = ultimoSaldo < 0 ? '#ef4444' : '#10b981';
+                tarjetaSaldo.style.borderLeftColor = ultimoSaldo < 0 ? '#ef4444' : '#10b981';
             }
 
-            // Renderizar el gráfico de Balanza (Barras dinámicas rojas y azules)
             if(document.querySelector("#grafico-balanza")) {
                 new ApexCharts(document.querySelector("#grafico-balanza"), {
                     ...opcionesGraficoLargo,
                     series: [{ name: 'Saldo Comercial', data: saldo }],
                     chart: { ...opcionesGraficoLargo.chart, type: 'bar' },
-                    colors: [function({ value }) { return value < 0 ? '#ef4444' : '#2563eb'; }], // Rojo si es déficit, azul si es superávit
+                    colors: [function({ value }) { return value < 0 ? '#ef4444' : '#2563eb'; }],
                     xaxis: { categories: meses, tickAmount: 10 } 
                 }).render();
             }
-        } else {
-            console.error("No se halló bloque de datos JSON en comex.php");
         }
     } catch (error) { console.error("Error Comex INE:", error); }
 }
 
 
 // ==========================================
-// 7. INICIALIZACIÓN
+// 8. INICIALIZACIÓN
 // ==========================================
 
 document.addEventListener("DOMContentLoaded", function() {
     formatearFecha();
     
-    // Ejecutamos las tres fuentes en paralelo
+    // Ejecutamos las cuatro fuentes en paralelo para cargar lo más rápido posible
     cargarDatosDesdeSheets();
+    cargarDatosPIB_DesdeINE();
     cargarDatosIPC_DesdeINE();
     cargarDatosBalanza_DesdeINE();
 });
