@@ -28,10 +28,10 @@
         </header>
 
         <section class="resumen-kpi">
-            <div class="kpi">
-                <span>Crecimiento PIB (Proyectado)</span>
-                <strong id="kpi-pib">--%</strong>
-            </div>
+           <div class="kpi">
+            <span>Crecimiento PIB (Acum. Último Trimestre)</span>
+            <strong id="kpi-pib">--%</strong>
+        </div>
             <div class="kpi">
                 <span>Inflación a 12 Meses (INE)</span>
                 <strong id="kpi-ipc">--%</strong>
@@ -49,10 +49,10 @@
                 <div id="grafico-ipc"></div>
             </div>
 
-            <div class="grafico-contenedor">
-                <h3>Evolución del PIB (%)</h3>
-                <div id="grafico-pib"></div>
-            </div>
+            <div class="grafico-contenedor" style="grid-column: 1 / -1;">
+            <h3>Evolución del PIB (Trimestral vs Acumulado) - Fuente: INE</h3>
+            <div id="grafico-pib"></div>
+        </div>
 
             <div class="grafico-contenedor">
                 <h3>Reservas Internacionales Netas (RIN)</h3>
@@ -75,4 +75,5 @@
     <script src="app.js"></script>
 </body>
 </html>
+
 
